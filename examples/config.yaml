@@ -1,10 +1,14 @@
-# 首次使用见 docs/user-guide.md；所有字段见 docs/configuration.md。
+# 首次使用见 docs/setup.md；所有字段见 docs/configuration.md。
 runtime: claude-sdk
 workspace: ~/agent-work
 data_dir: ~/.local/share/feishu-agent-gateway/data
 # 换成你的 CPA /v1/models 返回的真实 ID；不要填写应用界面的展示名称。
 model: REPLACE_WITH_CPA_MODEL_ID
 models: [REPLACE_WITH_CPA_MODEL_ID]
+# 可选：给长 ID 起短名，model 和 models 中可以直接用别名。
+# model_aliases:
+#   g-gemini: gemini-3.8-flash-high
+#   g-sol: gpt-5.6-sol
 effort: high
 provider:
   type: cpa

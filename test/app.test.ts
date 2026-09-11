@@ -73,3 +73,23 @@ test("restart restores the current session model and removed models start fresh"
   assert.equal(removed.status().model, c.model);
   assert.equal(warnings.length, 1);
 });
+
+test("model aliases: /model displays aliases and /model <alias> switches correctly", async t => {
+  const aliases = { "g-gemini": "gemini-3.8-flash-high", "g-sol": "gpt-5.6-sol" };
+  const c = { ...fixture(t), modelAliases: aliases };
+  const messages: string[] = [];
+  const reply = { replyText: async (_id: string, text: string) => { messages.push(text); }, replyRich: async (_id: string, _chat: string, text: string) => { messages.push(text); }, sendText: async () => {}, sendRich: async () => {} };
+  const app = new GatewayApp(c, logger, reply, async () => ({ paths: [], cleanup: async () => {} }), {
+    run: async () => ({ status: "ok" as const, resultKind: "text" as const, payload: "ok", providerSessionId: "s1", durationMs: 1 }), interrupt: async () => true
+  });
+  await app.handleMessage({ messageId: "m1", chatId: "chat", openId: "owner", text: "/model" });
+  assert.match(messages[messages.length - 1], /g-gemini/);
+  assert.match(messages[messages.length - 1], /g-sol/);
+  await app.handleMessage({ messageId: "m2", chatId: "chat", openId: "owner", text: "/model g-sol" });
+  assert.equal(app.status().model, "gpt-5.6-sol");
+  assert.match(messages[messages.length - 1], /g-sol/);
+  await app.handleMessage({ messageId: "m3", chatId: "chat", openId: "owner", text: "/status" });
+  assert.match(messages[messages.length - 1], /g-sol/);
+  await app.handleMessage({ messageId: "m4", chatId: "chat", openId: "owner", text: "/model gpt-5.6-sol" });
+  assert.equal(app.status().model, "gpt-5.6-sol");
+});

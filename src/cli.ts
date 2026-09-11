@@ -80,7 +80,7 @@ async function main(): Promise<void> {
       if (!(data.data ?? []).some((model: any) => model.id === config.model)) throw new Error("Configured model is not listed by CPA");
       providerChecked = true;
     }
-    console.log(JSON.stringify({ ok: true, version: VERSION, workspace: config.workspace, dataDir: config.dataDir, runtime: config.runtime, model: config.model, providerChecked }));
+    console.log(JSON.stringify({ ok: true, version: VERSION, workspace: config.workspace, dataDir: config.dataDir, runtime: config.runtime, model: config.model, models: config.models, ...(Object.keys(config.modelAliases).length ? { modelAliases: config.modelAliases } : {}), providerChecked }));
   } else if (command === "run") {
     const { runForeground } = await import("./run.js");
     await runForeground(config);

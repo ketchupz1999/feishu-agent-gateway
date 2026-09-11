@@ -6,7 +6,7 @@ import { parse, stringify } from "yaml";
 
 export type GatewayConfig = {
   configFile: string; workspace: string; dataDir: string; logDir: string; pidFile: string;
-  runtime: "claude-sdk"; model: string; models: string[]; effort: "low" | "medium" | "high" | "xhigh" | "max";
+  runtime: "claude-sdk"; model: string; models: string[]; modelAliases: Record<string, string>; effort: "low" | "medium" | "high" | "xhigh" | "max";
   provider: { type: "cpa"; baseUrl: string; apiKey: string };
   claudeCodePath?: string; controlPort: number; passEnv?: string[];
   feishuSecretsFile: string; feishuAppId: string; feishuAppSecret: string; feishuAllowedOpenId: string;
@@ -79,10 +79,21 @@ export function loadConfig(file = defaultConfigFile(), workspaceOverride?: strin
   const feishu = object(raw.feishu, "feishu");
   const feishuSecret = process.env.FEISHU_APP_ID && process.env.FEISHU_APP_SECRET && (process.env.FEISHU_ALLOWED_OPEN_ID || feishu.allowed_open_id)
     ? {} : secretFile(feishu.credentials_file, base);
-  const model = required(raw.model, "model");
+  const modelIdPattern = /^[a-zA-Z0-9_.:/-]{1,200}$/;
+  const rawAliases: Record<string, string> = {};
+  for (const [alias, realId] of Object.entries(raw.model_aliases ?? {})) {
+    if (typeof realId !== "string" || !modelIdPattern.test(alias) || !modelIdPattern.test(realId)) throw new Error(`Invalid model_aliases entry: ${alias}`);
+    rawAliases[alias] = realId;
+  }
+  const aliasValues = new Set(Object.values(rawAliases));
+  for (const alias of Object.keys(rawAliases)) {
+    if (aliasValues.has(alias)) throw new Error(`model_aliases cannot chain: ${alias} is both an alias key and another alias's target`);
+  }
+  const resolveAlias = (id: string) => rawAliases[id] ?? id;
+  const model = resolveAlias(required(raw.model, "model"));
   if (!Array.isArray(raw.models ?? [])) throw new Error("models must be an array");
-  const models: string[] = [...new Set([model, ...(raw.models ?? [])])];
-  if (models.some(id => typeof id !== "string" || !/^[a-zA-Z0-9_.:/-]{1,200}$/.test(id))) throw new Error("models must contain valid model IDs");
+  const models: string[] = [...new Set([model, ...(raw.models ?? []).map((id: string) => resolveAlias(id))])];
+  if (models.some(id => typeof id !== "string" || !modelIdPattern.test(id))) throw new Error("models must contain valid model IDs");
   const effort = raw.effort ?? "high";
   if (!["low", "medium", "high", "xhigh", "max"].includes(effort)) throw new Error("Invalid effort");
   const controlPort = raw.control_port ?? (10240 + createHash("sha256").update(dataDir).digest().readUInt16BE() % 40000);
@@ -102,7 +113,7 @@ export function loadConfig(file = defaultConfigFile(), workspaceOverride?: strin
   }
   return {
     configFile, workspace, dataDir, logDir: path.join(dataDir, "logs"), pidFile: path.join(dataDir, "gateway.pid"),
-    runtime: "claude-sdk", model, models, effort, controlPort,
+    runtime: "claude-sdk", model, models, modelAliases: rawAliases, effort, controlPort,
     provider: { type: "cpa", baseUrl: url.toString().replace(/\/+$/, ""), apiKey },
     claudeCodePath: process.env.CLAUDE_CODE_PATH ?? (raw.claude_command ? resolveFile(raw.claude_command, base) : undefined),
     feishuSecretsFile: feishu.credentials_file ? resolveFile(feishu.credentials_file, base) : "environment",

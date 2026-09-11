@@ -12,7 +12,7 @@ export function fixture(t: TestContext): GatewayConfig {
   fs.mkdirSync(workspace); fs.mkdirSync(dataDir);
   return {
     configFile: path.join(dir, "config.json"), workspace, dataDir, logDir: path.join(dataDir, "logs"), pidFile: path.join(dataDir, "gateway.pid"),
-    runtime: "claude-sdk", model: "gemini-3.8-flash-high", models: ["gemini-3.8-flash-high", "gpt-5.6-sol"], effort: "high",
+    runtime: "claude-sdk", model: "gemini-3.8-flash-high", models: ["gemini-3.8-flash-high", "gpt-5.6-sol"], modelAliases: {}, effort: "high",
     provider: { type: "cpa", baseUrl: "http://127.0.0.1:8317", apiKey: "fixture-cpa-key" }, controlPort: 0,
     feishuSecretsFile: "fixture", feishuAppId: "fixture-app", feishuAppSecret: "fixture-app-secret", feishuAllowedOpenId: "ou_owner", allowedChatIds: [], listeners: []
   };

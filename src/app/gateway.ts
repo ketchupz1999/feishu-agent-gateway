@@ -18,6 +18,7 @@ export class GatewayApp {
   private readonly lock = new TaskLock();
   private readonly cancellation = new StopController(this.lock);
   private readonly sessions: ClaudeSessionStore;
+  private readonly reverseAliases: Map<string, string>;
   private controller: AbortController | null = null;
   private stopping = false;
   private model: string;
@@ -31,6 +32,18 @@ export class GatewayApp {
   ) {
     this.sessions = new ClaudeSessionStore(config.dataDir);
     this.model = config.model;
+    this.reverseAliases = new Map(Object.entries(config.modelAliases ?? {}).map(([alias, real]) => [real, alias]));
+  }
+
+  displayModel(realId: string): string {
+    const alias = this.reverseAliases.get(realId);
+    return alias ? alias : realId;
+  }
+
+  private resolveModelInput(input: string): string {
+    const aliases = this.config.modelAliases ?? {};
+    if (aliases[input]) return aliases[input];
+    return input;
   }
 
   /** 获得实例控制权后恢复会话模型；配置移除的模型不静默替换。 */
@@ -88,7 +101,7 @@ export class GatewayApp {
     if (command === "/help") {
       await send("直接发送文字或图片即可提问。每条最多 4 张、每张 5 MiB。\n\n/new 新会话 · /model 模型 · /sessions 历史 · /switch 切换 · /pin 置顶 · /unpin 取消置顶 · /top 置顶列表 · /stop 中断 · /status 状态\n\n业务命令由工作区自己的 Claude Skills 提供。");
     } else if (command === "/status") {
-      await send(`Gateway ${VERSION}\n运行时：Claude Code\n提供方：CPA\n模型：${this.model}\n状态：${this.lock.isBusy() ? "执行中" : "空闲"}`);
+      await send(`Gateway ${VERSION}\n运行时：Claude Code\n提供方：CPA\n模型：${this.displayModel(this.model)}\n状态：${this.lock.isBusy() ? "执行中" : "空闲"}`);
     } else if (command === "/stop") {
       if (!this.cancellation.requestCancel().requested) { await send("当前没有执行中的任务"); return; }
       this.controller?.abort();
@@ -99,17 +112,20 @@ export class GatewayApp {
       this.sessions.setCurrentThreadId(null);
       await send("下次消息将开启新会话，历史记录保留");
     } else if (command === "/model") {
-      if (!args[0]) { await send(`当前模型：${this.model}\n\n${this.config.models.map(id => `/model ${id}`).join("\n")}`); return; }
-      const exact = this.config.models.find(id => id === args[0]);
-      const matches = exact ? [exact] : this.config.models.filter(id => id.startsWith(args[0]));
+      if (!args[0]) { await send(`当前模型：${this.displayModel(this.model)}\n\n${this.config.models.map(id => `/model ${this.displayModel(id)}`).join("\n")}`); return; }
+      const resolved = this.resolveModelInput(args[0]);
+      const exact = this.config.models.find(id => id === resolved);
+      const displayNames = this.config.models.map(id => ({ id, display: this.displayModel(id) }));
+      const aliasMatch = !exact ? displayNames.filter(m => m.display === args[0]).map(m => m.id) : [];
+      const matches = exact ? [exact] : aliasMatch.length === 1 ? aliasMatch : this.config.models.filter(id => id.startsWith(resolved) || this.displayModel(id).startsWith(args[0]));
       if (matches.length !== 1) { await send(matches.length ? "匹配多个模型，请输入完整模型名" : "模型不在配置列表中"); return; }
       this.model = matches[0];
       this.sessions.setCurrentThreadId(null);
-      await send(`模型已切换为 ${this.model}，下次消息开启新会话`);
+      await send(`模型已切换为 ${this.displayModel(this.model)}，下次消息开启新会话`);
     } else {
       const threads = this.sessions.listThreads(50);
-      if (command === "/sessions") { await send(this.sessions.formatThreadList(threads, this.sessions.getCurrentThreadId())); return; }
-      if (command === "/top") { await send(this.sessions.formatPinnedList(threads, this.sessions.getCurrentThreadId())); return; }
+      if (command === "/sessions") { await send(this.sessions.formatThreadList(threads, this.sessions.getCurrentThreadId(), id => this.displayModel(id))); return; }
+      if (command === "/top") { await send(this.sessions.formatPinnedList(threads, this.sessions.getCurrentThreadId(), id => this.displayModel(id))); return; }
       const candidates = command === "/unpin" ? threads.filter(thread => thread.pinned) : threads;
       const id = this.sessions.resolveTarget(args[0] ?? "", candidates);
       if (!id) { await send(`未找到会话；用法：${command} <序号或 ID>`); return; }
@@ -136,7 +152,7 @@ export class GatewayApp {
     let images: DownloadedImages | undefined;
     let keepImages = false;
     try {
-      await this.reply.replyText(message.messageId, `正在执行… [Claude Code · ${model}]`, message.chatId);
+      await this.reply.replyText(message.messageId, `正在执行… [Claude Code · ${this.displayModel(model)}]`, message.chatId);
       if (message.imageKeys?.length) images = await this.downloadImages(message, controller.signal);
       if (this.cancellation.shouldDiscardLateResult(requestId)) return;
       const result = await this.executor.run({

@@ -65,16 +65,16 @@ export class ClaudeSessionStore {
   }
 
   /** 格式化当前列表；序号与切换命令一致。 */
-  formatThreadList(threads: ThreadMeta[], current: string | null): string {
+  formatThreadList(threads: ThreadMeta[], current: string | null, displayModel: (id: string) => string = id => id): string {
     if (!threads.length) return "暂无 Claude 历史会话";
     return ["## Claude Code 会话", ...threads.map((thread, i) =>
-      `${i + 1}. ${thread.pinned ? "[置顶] " : ""}${thread.title.replace(/[\r\n]+/g, " ").slice(0, 80)}${thread.id === current ? " ◀ 当前" : ""}\n模型：${thread.model}`
+      `${i + 1}. ${thread.pinned ? "[置顶] " : ""}${thread.title.replace(/[\r\n]+/g, " ").slice(0, 80)}${thread.id === current ? " ◀ 当前" : ""}\n模型：${displayModel(thread.model)}`
     ), "切换：`/switch 1`"].join("\n\n");
   }
 
   /** 展示列表内已置顶的 Claude 会话。 */
-  formatPinnedList(threads: ThreadMeta[], current: string | null): string {
-    return this.formatThreadList(threads.filter(thread => thread.pinned), current);
+  formatPinnedList(threads: ThreadMeta[], current: string | null, displayModel: (id: string) => string = id => id): string {
+    return this.formatThreadList(threads.filter(thread => thread.pinned), current, displayModel);
   }
 
   /** 只解析给定列表中的序号或会话 ID。 */

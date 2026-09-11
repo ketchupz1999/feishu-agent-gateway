@@ -33,6 +33,42 @@ test("configuration resolves relative paths without any host repository scaffold
   assert.throws(() => loadConfig(c.configFile), /without credentials/);
 });
 
+test("model_aliases resolves aliases in model and models to real IDs", t => {
+  const c = fixture(t);
+  const old = { ...process.env };
+  for (const key of ["CPA_API_KEY", "CPA_BASE_URL", "FEISHU_APP_ID", "FEISHU_APP_SECRET", "FEISHU_ALLOWED_OPEN_ID", "CLAUDE_CODE_PATH"]) delete process.env[key];
+  t.after(() => { for (const key of ["CPA_API_KEY", "CPA_BASE_URL", "FEISHU_APP_ID", "FEISHU_APP_SECRET", "FEISHU_ALLOWED_OPEN_ID", "CLAUDE_CODE_PATH"]) {
+    if (old[key] === undefined) delete process.env[key]; else process.env[key] = old[key];
+  } });
+  fs.writeFileSync(path.join(path.dirname(c.configFile), "credentials.json"), JSON.stringify({ api_key: "k", app_id: "a", app_secret: "s", allowed_open_id: "o" }));
+  const raw = { runtime: "claude-sdk", workspace: "work space", data_dir: "state",
+    model: "g-gemini", models: ["g-gemini", "g-sol"],
+    model_aliases: { "g-gemini": "gemini-3.8-flash-high", "g-sol": "gpt-5.6-sol" },
+    provider: { type: "cpa", base_url: "http://127.0.0.1:8317", credentials_file: "credentials.json" },
+    feishu: { credentials_file: "credentials.json" } };
+  fs.writeFileSync(c.configFile, JSON.stringify(raw));
+  const loaded = loadConfig(c.configFile);
+  assert.equal(loaded.model, "gemini-3.8-flash-high");
+  assert.deepEqual(loaded.models, ["gemini-3.8-flash-high", "gpt-5.6-sol"]);
+  assert.deepEqual(loaded.modelAliases, { "g-gemini": "gemini-3.8-flash-high", "g-sol": "gpt-5.6-sol" });
+});
+
+test("model_aliases rejects chained aliases", t => {
+  const c = fixture(t);
+  const old = { ...process.env };
+  for (const key of ["CPA_API_KEY", "CPA_BASE_URL", "FEISHU_APP_ID", "FEISHU_APP_SECRET", "FEISHU_ALLOWED_OPEN_ID", "CLAUDE_CODE_PATH"]) delete process.env[key];
+  t.after(() => { for (const key of ["CPA_API_KEY", "CPA_BASE_URL", "FEISHU_APP_ID", "FEISHU_APP_SECRET", "FEISHU_ALLOWED_OPEN_ID", "CLAUDE_CODE_PATH"]) {
+    if (old[key] === undefined) delete process.env[key]; else process.env[key] = old[key];
+  } });
+  fs.writeFileSync(path.join(path.dirname(c.configFile), "credentials.json"), JSON.stringify({ api_key: "k", app_id: "a", app_secret: "s", allowed_open_id: "o" }));
+  const raw = { runtime: "claude-sdk", workspace: "work space", data_dir: "state", model: "a",
+    model_aliases: { "a": "b", "c": "a" },
+    provider: { type: "cpa", base_url: "http://127.0.0.1:8317", credentials_file: "credentials.json" },
+    feishu: { credentials_file: "credentials.json" } };
+  fs.writeFileSync(c.configFile, JSON.stringify(raw));
+  assert.throws(() => loadConfig(c.configFile), /cannot chain/);
+});
+
 test("init is non-destructive and contains no credential values", t => {
   const c = fixture(t);
   initConfig(c.configFile, c.workspace);
