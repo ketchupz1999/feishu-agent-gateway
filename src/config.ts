@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { parse, stringify } from "yaml";
 
 export type GatewayConfig = {
-  configFile: string; workspace: string; dataDir: string; logDir: string; pidFile: string; currentDate: string;
+  configFile: string; workspace: string; dataDir: string; logDir: string; pidFile: string;
   runtime: "claude-sdk"; model: string; models: string[]; effort: "low" | "medium" | "high" | "xhigh" | "max";
   provider: { type: "cpa"; baseUrl: string; apiKey: string };
   claudeCodePath?: string; controlPort: number; passEnv?: string[];
@@ -67,9 +67,9 @@ export function loadConfig(file = defaultConfigFile(), workspaceOverride?: strin
   const workspace = resolveFile(required(workspaceOverride ?? raw.workspace, "workspace"), base);
   if (!fs.existsSync(workspace) || !fs.statSync(workspace).isDirectory()) throw new Error("workspace must be an existing directory");
   const { dataDir } = statePaths(raw, base, configFile);
-  if (raw.runtime !== "claude-sdk") throw new Error("v2 requires runtime: claude-sdk");
+  if (raw.runtime !== "claude-sdk") throw new Error("Gateway requires runtime: claude-sdk");
   const provider = object(raw.provider, "provider");
-  if (provider.type !== "cpa") throw new Error("v2 requires provider.type: cpa");
+  if (provider.type !== "cpa") throw new Error("Gateway requires provider.type: cpa");
   let url: URL;
   try { url = new URL(required(process.env.CPA_BASE_URL ?? provider.base_url, "provider.base_url")); }
   catch { throw new Error("Invalid provider.base_url"); }
@@ -101,7 +101,7 @@ export function loadConfig(file = defaultConfigFile(), workspaceOverride?: strin
     listeners.push({ name, command: listener.command, env });
   }
   return {
-    configFile, workspace, dataDir, logDir: path.join(dataDir, "logs"), pidFile: path.join(dataDir, "gateway.pid"), currentDate: new Date().toISOString().slice(0, 10),
+    configFile, workspace, dataDir, logDir: path.join(dataDir, "logs"), pidFile: path.join(dataDir, "gateway.pid"),
     runtime: "claude-sdk", model, models, effort, controlPort,
     provider: { type: "cpa", baseUrl: url.toString().replace(/\/+$/, ""), apiKey },
     claudeCodePath: process.env.CLAUDE_CODE_PATH ?? (raw.claude_command ? resolveFile(raw.claude_command, base) : undefined),
@@ -120,7 +120,8 @@ export function initConfig(file: string, workspace: string): void {
   fs.writeFileSync(target, stringify({
     runtime: "claude-sdk", workspace: path.resolve(workspace),
     data_dir: defaultDataDir(target),
-    model: "gemini-3.8-flash-high", models: ["gemini-3.8-flash-high", "gpt-5.6-sol"], effort: "high",
-    provider: { type: "cpa", base_url: "http://127.0.0.1:8317" }, feishu: { allowed_open_id: "" }
+    model: "REPLACE_WITH_CPA_MODEL_ID", models: ["REPLACE_WITH_CPA_MODEL_ID"], effort: "high",
+    provider: { type: "cpa", base_url: "http://127.0.0.1:8317", credentials_file: "./cpa.json" },
+    feishu: { credentials_file: "./feishu.json" }
   }), { flag: "wx", mode: 0o600 });
 }

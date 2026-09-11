@@ -12,4 +12,4 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: mkdir -p releases && npm pack --pack-destination releases
-      - run: node scripts/check-package.mjs releases/feishu-agent-gateway-2.0.0-alpha.1.tgz
+      - run: node scripts/check-package.mjs releases/*.tgz

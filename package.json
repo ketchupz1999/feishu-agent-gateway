@@ -1,13 +1,27 @@
 {
   "name": "feishu-agent-gateway",
-  "version": "2.0.0-alpha.1",
+  "version": "2.0.0-alpha.2",
   "description": "A standalone Feishu gateway for Claude Agent SDK and compatible model gateways",
   "type": "module",
   "license": "MIT",
-  "repository": { "type": "git", "url": "https://github.com/ketchupz1999/feishu-agent-gateway.git" },
-  "bin": { "feishu-agent-gateway": "dist/cli.js" },
-  "files": ["npm-shrinkwrap.json", "dist", "examples", "docs", "README.md", "LICENSE"],
-  "engines": { "node": ">=20" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ketchupz1999/feishu-agent-gateway.git"
+  },
+  "bin": {
+    "feishu-agent-gateway": "dist/cli.js"
+  },
+  "files": [
+    "npm-shrinkwrap.json",
+    "dist",
+    "examples",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "tsc -p tsconfig.test.json --noEmit && tsx --test --test-concurrency=1 test/*.test.ts",
@@ -19,5 +33,9 @@
     "@larksuiteoapi/node-sdk": "1.59.0",
     "yaml": "2.8.3"
   },
-  "devDependencies": { "@types/node": "24.5.2", "tsx": "4.20.5", "typescript": "5.9.2" }
+  "devDependencies": {
+    "@types/node": "24.5.2",
+    "tsx": "4.20.5",
+    "typescript": "5.9.2"
+  }
 }

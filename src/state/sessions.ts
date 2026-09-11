@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import type { SessionStore, ThreadMeta } from "./types.js";
+import type { ThreadMeta } from "./types.js";
 
 type Index = { version: 1; current: string | null; sessions: Record<string, ThreadMeta> };
 
 /** 仅索引此 Gateway 创建的 Claude 原生会话，不混用 Codex 的线程指针。 */
-export class ClaudeSessionStore implements SessionStore {
+export class ClaudeSessionStore {
   private readonly file: string;
 
   constructor(dataDir: string) { this.file = path.join(dataDir, ".gateway_claude_sessions.json"); }

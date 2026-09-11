@@ -29,7 +29,7 @@ export async function controlRequest(config: StateConfig, action: "status" | "st
   return result;
 }
 
-/** 拒绝覆盖仍存活的本地进程，包括尚未迁移的旧 Gateway。 */
+/** 拒绝覆盖占用当前数据目录的存活进程。 */
 export function assertNoLivePid(config: GatewayConfig): void {
   if (!fs.existsSync(config.pidFile)) return;
   const pid = Number(fs.readFileSync(config.pidFile, "utf8").trim());

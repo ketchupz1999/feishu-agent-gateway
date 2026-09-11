@@ -88,14 +88,16 @@ export function createLarkRuntime(config: GatewayConfig, logger: Logger): LarkRu
             openId: message.openId,
             text: message.text.slice(0, 80)
           });
-          try {
-            await onMessage(message);
-          } catch (err) {
-            logger.error("Feishu message handler failed", {
-              messageId: message.messageId,
-              chatId: message.chatId,
-              message: err instanceof Error ? err.message : String(err)
-            });
+          // 长任务在后台继续；handler 立即完成，让 SDK 及时向飞书 ACK。
+          // 从 Promise 开始也捕获调用方的同步异常，避免未处理的 rejection。
+          void Promise.resolve().then(() => onMessage(message)).catch(async (err) => {
+            try {
+              logger.error("Feishu message handler failed", {
+                messageId: message.messageId,
+                chatId: message.chatId,
+                message: err instanceof Error ? err.message : String(err)
+              });
+            } catch { /* 日志存储失败仍尝试回复用户。 */ }
             try {
               await reply.sendText(message.chatId, `[错误] ${err instanceof Error ? err.message : String(err)}`);
             } catch (replyErr) {
@@ -105,7 +107,7 @@ export function createLarkRuntime(config: GatewayConfig, logger: Logger): LarkRu
                 message: replyErr instanceof Error ? replyErr.message : String(replyErr)
               });
             }
-          }
+          }).catch(() => { /* 错误上报自身失败也不能成为未处理的后台 rejection。 */ });
         }
       });
 

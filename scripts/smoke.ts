@@ -48,13 +48,12 @@ async function main(): Promise<void> {
   assert.ok(config.provider, "先配置 CPA");
   const model = config.model;
   const engine = config.runtime;
-  console.log(JSON.stringify({ phase: "start", engine, model, claudeExecutable: engine === "claude-sdk" ? config.claudeCodePath ?? "sdk-bundled" : undefined }));
+  console.log(JSON.stringify({ phase: "start", engine, model, claudeExecutable: config.claudeCodePath ?? "sdk-bundled" }));
   const workspace = await fs.mkdtemp(path.join(os.tmpdir(), "gateway-cpa-smoke-"));
   execFileSync("git", ["init", "--quiet", workspace]);
   const imagePath = path.join(workspace, "fixture.png");
   await fs.writeFile(imagePath, makeImage());
-  const Executor = ClaudeChatExecutor;
-  const executor = new Executor({ ...config, workspace }, {
+  const executor = new ClaudeChatExecutor({ ...config, workspace }, {
     info() {}, warn() {}, error(message) { console.error(message); }
   });
   const timer = setTimeout(() => { void executor.interrupt(); }, 180_000);
