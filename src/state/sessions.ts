@@ -4,7 +4,7 @@ import type { ThreadMeta } from "./types.js";
 
 type Index = { version: 1; current: string | null; sessions: Record<string, ThreadMeta> };
 
-/** 仅索引此 Gateway 创建的 Claude 原生会话，不混用 Codex 的线程指针。 */
+/** 索引此 Gateway 创建的 Claude 原生会话。 */
 export class ClaudeSessionStore {
   private readonly file: string;
 
@@ -30,7 +30,7 @@ export class ClaudeSessionStore {
     const index = this.read();
     const old = index.sessions[thread.id];
     index.sessions[thread.id] = { ...thread, title: old?.title || thread.title,
-      firstUserMessage: old?.firstUserMessage || thread.firstUserMessage, pinned: old?.pinned ?? false };
+      pinned: old?.pinned ?? false };
     this.save(index);
   }
 
@@ -48,7 +48,7 @@ export class ClaudeSessionStore {
   /** 读取当前 Claude 会话指针。 */
   getCurrentThreadId(): string | null { return this.read().current; }
 
-  /** 切换或清空 Claude 指针；禁止续接未注册的其他引擎会话。 */
+  /** 切换或清空 Claude 指针；只允许索引中存在的会话 ID。 */
   setCurrentThreadId(id: string | null): void {
     const index = this.read();
     if (id && !Object.hasOwn(index.sessions, id)) throw new Error("未找到 Claude 会话");

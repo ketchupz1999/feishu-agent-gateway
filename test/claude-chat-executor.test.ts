@@ -62,7 +62,7 @@ test("explicit tool environment keeps runtime guards and opt-in variables", () =
   }
 });
 
-test("images are sent as Claude image blocks, not Codex local_image", async (t) => {
+test("images are sent as Claude base64 image blocks", async (t) => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "claude-image-unit-"));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const file = path.join(dir, "image.png");

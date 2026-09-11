@@ -5,14 +5,14 @@ import os from "node:os";
 import path from "node:path";
 import { ClaudeSessionStore } from "../src/state/sessions.js";
 
-test("Claude index survives restart without touching Codex session or history", (t) => {
+test("session index preserves history and pins across restart, leaving unrelated files intact", (t) => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "claude-session-store-"));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const codexPointer = path.join(dir, ".gateway_session");
-  fs.writeFileSync(codexPointer, "old-codex-session");
+  const unrelatedFile = path.join(dir, "unrelated-state.txt");
+  fs.writeFileSync(unrelatedFile, "unregistered-session");
   const store = new ClaudeSessionStore(dir);
   assert.equal(store.getCurrentThreadId(), null);
-  assert.throws(() => store.setCurrentThreadId("old-codex-session"), /未找到/);
+  assert.throws(() => store.setCurrentThreadId("unregistered-session"), /未找到/);
   store.recordThread({ id: "claude-one", title: "首个问题", model: "gemini-3.8-flash-high", updatedAt: 1, pinned: false });
   store.setCurrentThreadId("claude-one");
   store.pinThread("claude-one", true);
@@ -24,5 +24,5 @@ test("Claude index survives restart without touching Codex session or history", 
   assert.equal(restarted.resolveTarget("1", restarted.listThreads()), "claude-one");
   restarted.setCurrentThreadId(null);
   assert.equal(restarted.listThreads().length, 1);
-  assert.equal(fs.readFileSync(codexPointer, "utf8"), "old-codex-session");
+  assert.equal(fs.readFileSync(unrelatedFile, "utf8"), "unregistered-session");
 });

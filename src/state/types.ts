@@ -4,5 +4,4 @@ export interface ThreadMeta {
   model: string;
   updatedAt: number; // timestamp
   pinned: boolean;
-  firstUserMessage?: string;
 }
