@@ -1,0 +1,21 @@
+runtime: claude-sdk
+workspace: /absolute/path/to/workspace
+data_dir: /absolute/path/to/private/gateway-data
+model: gemini-3.8-flash-high
+models: [gemini-3.8-flash-high, gpt-5.6-sol, claude-sonnet-4-6]
+effort: high
+# claude_command: /absolute/path/to/claude # 可选，缺省使用 SDK 自带运行时
+provider:
+  type: cpa
+  base_url: http://127.0.0.1:8317
+  credentials_file: ./cpa.json
+feishu:
+  credentials_file: ./feishu.json
+  # allowed_chat_ids: [oc_your_private_chat]
+# 端口默认由 data_dir 确定，冲突时显式指定。
+# control_port: 38383
+# 外部通道属于宿主；命令必须是 argv 数组。
+# listener_channels:
+#   weixin:
+#     enabled: true
+#     command: [make, -C, components/servers/weixin_listener, start-gateway]
