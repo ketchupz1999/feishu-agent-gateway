@@ -1,0 +1,31 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { createServer } from "node:net";
+import { startControl, controlRequest, readControl } from "../src/control.js";
+import { fixture } from "./helpers.js";
+
+test("control authenticates its instance and never treats an arbitrary PID as stoppable", async t => {
+  const config = fixture(t);
+  const reserve = createServer();
+  await new Promise<void>(resolve => reserve.listen(0, "127.0.0.1", resolve));
+  config.controlPort = (reserve.address() as { port: number }).port;
+  await new Promise<void>(resolve => reserve.close(() => resolve()));
+  let stopped = false;
+  const service = await startControl(config, () => ({ ready: true }), () => { stopped = true; });
+  t.after(() => service.close());
+  const unauthorized = await fetch(`http://127.0.0.1:${config.controlPort}/stop`, { method: "POST" });
+  assert.equal(unauthorized.status, 401);
+  assert.equal(stopped, false);
+  const status = await controlRequest(config, "status");
+  assert.equal(status.pid, process.pid);
+  assert.equal(status.ready, true);
+  assert.equal(status.token, undefined);
+  assert.equal(fs.statSync(path.join(config.dataDir, "gateway-control.json")).mode & 0o777, 0o600);
+  await assert.rejects(startControl(config, () => ({}), () => {}), /owned by live PID/);
+  await controlRequest(config, "stop");
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(stopped, true);
+  assert.ok(readControl(config));
+});

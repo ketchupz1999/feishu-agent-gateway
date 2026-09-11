@@ -1,42 +1,10 @@
-# Runtime data
-data/
-components/config.yaml
-components/servers/gateway_codex/node_modules/
-components/servers/gateway_codex/dist/
-components/servers/weixin_listener/node_modules/
-components/servers/weixin_listener/dist/
-*.pid
+node_modules/
+dist/
+releases/
+*.tgz
 *.log
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-.venv/
-venv/
-
-# Secrets — NEVER commit
-.claude/secrets/feishu_app.json
-config/env.conf
-*.secret
-*.key
-
-# OS
+*.pid
+.env
+config.local.*
+data/
 .DS_Store
-Thumbs.db
-
-# Editor
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Feishu push dedup
-.last_sends
-
-# Session files
-.gateway_session
-memory/session-handoffs/
-
-# Local agent planning
-.a-confirm/

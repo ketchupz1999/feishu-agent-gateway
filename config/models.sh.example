@@ -1,9 +1,0 @@
-#!/bin/bash
-# 模型配置 — 复制为 models.sh 后修改
-# pipeline.sh 会 source 此文件
-
-# 默认模型（轻量任务：知识进化、日常查询）
-DEFAULT_MODEL="${DEFAULT_MODEL:-sonnet}"
-
-# 重型模型（复杂推理任务）
-HEAVY_MODEL="${HEAVY_MODEL:-opus}"
